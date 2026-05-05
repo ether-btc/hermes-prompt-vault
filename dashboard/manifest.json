@@ -1,0 +1,14 @@
+{
+  "name": "prompt-vault",
+  "label": "Prompt Vault",
+  "description": "Save, organize, version, and reuse your prompts across sessions",
+  "icon": "BookMarked",
+  "version": "1.0.0",
+  "tab": {
+    "path": "/prompt-vault",
+    "position": "after:skills"
+  },
+  "entry": "dist/index.js",
+  "css": "dist/style.css",
+  "api": "plugin_api.py"
+}

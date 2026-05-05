@@ -1,0 +1,3 @@
+name: prompt-vault
+version: 1.0.0
+description: "Save, organize, and reuse prompts from any Hermes platform via /vault slash commands."
