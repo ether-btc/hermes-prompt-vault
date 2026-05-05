@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hermes-plugin-prompt-vault"
+version = "1.0.0"
+description = "Save, organize, and reuse prompts from any Hermes platform via /vault slash commands."
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[tool.hermes-plugin]
+name = "prompt-vault"
+init = "__init__.py"

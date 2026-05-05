@@ -27,6 +27,7 @@ Subcommands:
   use <id>               Show a prompt's full content (ready to paste)
   save <title> | <content>   Save a new prompt with title and content
   save <title>           Save a placeholder (edit content in dashboard)
+  favorite <id>          Toggle favorite status for a prompt
   delete <id>            Delete a prompt
   stats                  Show prompt vault statistics
   help                   Show this help message
@@ -37,7 +38,9 @@ Examples:
   /vault search code review
   /vault use a1b2c3d4
   /vault save Code Review | Review this PR for bugs, style issues...
+  /vault save My Prompt | prompt content here | My description
   /vault save My Workflow
+  /vault favorite a1b2c3d4
   /vault stats
 """
 
@@ -110,6 +113,8 @@ def _handle_vault(raw_args: str, *, conversation_history: list = None) -> Option
         return _cmd_use(argv[1] if len(argv) > 1 else None)
     elif sub == "save":
         return _cmd_save(argv[1:], conversation_history)
+    elif sub == "favorite":
+        return _cmd_favorite(argv[1] if len(argv) > 1 else None)
     elif sub == "delete":
         return _cmd_delete(argv[1] if len(argv) > 1 else None)
     elif sub == "stats":
@@ -161,10 +166,13 @@ def _cmd_search(query: str) -> str:
 
     db = _get_db()
     try:
-        q = f"%{query}%"
+        # Escape LIKE metacharacters % and _ so they are treated literally
+        escaped = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        q = f"%{escaped}%"
         rows = db.execute(
             """SELECT * FROM prompts
                WHERE title LIKE ? OR content LIKE ? OR description LIKE ?
+               ESCAPE '\\'
                ORDER BY favorite DESC, updated_at DESC LIMIT 10""",
             (q, q, q),
         ).fetchall()
@@ -229,38 +237,49 @@ def _cmd_use(prompt_id: Optional[str]) -> str:
 
 
 def _cmd_save(args: list, conversation_history: Optional[list]) -> str:
-    """Save a prompt. Title from args, content provided inline or via pipe.
+    """Save a prompt. Title from args, content and optional description via pipe.
 
     Usage:
       /vault save My Title | The prompt content goes here
+      /vault save My Title | The prompt content goes here | A description
       /vault save My Title    (saves a placeholder you can edit in the dashboard)
     """
     if not args:
-        return "Usage: /vault save <title> | <content>\n       /vault save <title>"
+        return "Usage: /vault save <title> | <content> | <description>\n       /vault save <title> | <content>\n       /vault save <title>"
 
     raw = " ".join(args)
 
     # Check for pipe separator: "title | content"
     if "|" in raw:
-        parts = raw.split("|", 1)
+        parts = raw.split("|")
         title = parts[0].strip()
-        content = parts[1].strip()
+        content = parts[1].strip() if len(parts) > 1 else ""
+        description = parts[2].strip() if len(parts) > 2 else ""
     else:
         title = raw.strip()
-        content = f"[Edit this prompt in the Prompt Vault dashboard]"
+        content = "[Edit this prompt in the Prompt Vault dashboard]"
+        description = ""
 
     if not title:
         return "Usage: /vault save <title> | <content>"
 
     db = _get_db()
     try:
-        prompt_id = str(uuid.uuid4())[:8]
         now = _now_iso()
-        db.execute(
-            """INSERT INTO prompts (id, title, content, description, category, tags, created_at, updated_at)
-               VALUES (?, ?, ?, '', '', '[]', ?, ?)""",
-            (prompt_id, title, content, now, now),
-        )
+        # Retry loop to handle duplicate ID collisions
+        for _attempt in range(10):
+            prompt_id = str(uuid.uuid4())[:8]
+            try:
+                db.execute(
+                    """INSERT INTO prompts (id, title, content, description, category, tags, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, '', '[]', ?, ?)""",
+                    (prompt_id, title, content, description, now, now),
+                )
+                break
+            except sqlite3.IntegrityError:
+                continue
+        else:
+            return "Error: Could not generate a unique ID after 10 attempts."
         db.commit()
         return f'Prompt saved! ID: {prompt_id}\nTitle: {title}\n\nUse /vault use {prompt_id} to view it.'
     finally:
@@ -285,6 +304,32 @@ def _cmd_delete(prompt_id: Optional[str]) -> str:
         db.execute("DELETE FROM prompts WHERE id = ?", (row["id"],))
         db.commit()
         return f'Deleted "{row["title"]}" ({row["id"]})'
+    finally:
+        db.close()
+
+
+def _cmd_favorite(prompt_id: Optional[str]) -> str:
+    """Toggle favorite status for a prompt by ID."""
+    if not prompt_id:
+        return "Usage: /vault favorite <id>"
+
+    db = _get_db()
+    try:
+        row = db.execute("SELECT id, title, favorite FROM prompts WHERE id = ?", (prompt_id,)).fetchone()
+        if not row:
+            # Try prefix match
+            row = db.execute("SELECT id, title, favorite FROM prompts WHERE id LIKE ?", (f"{prompt_id}%",)).fetchone()
+        if not row:
+            return f'No prompt found matching "{prompt_id}".'
+
+        new_val = 0 if row["favorite"] else 1
+        db.execute(
+            "UPDATE prompts SET favorite = ?, updated_at = ? WHERE id = ?",
+            (new_val, _now_iso(), row["id"]),
+        )
+        db.commit()
+        status = "★ favorited" if new_val else "unfavorited"
+        return f'{status} "{row["title"]}" ({row["id"]})'
     finally:
         db.close()
 

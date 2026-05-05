@@ -1,51 +1,31 @@
-# Prompt Vault for Hermes Agent
+# hermes-prompt-vault
 
-A prompt library plugin for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Save, organize, version, and reuse prompts from the dashboard or any platform via slash commands.
+Hermes plugin for saving, organizing, and reusing prompts via `/vault` slash commands.
 
 ## Features
 
-- **Web Dashboard** — Visual prompt library with search, categories, tags, favorites, version history
-- **Slash Commands** — Access your prompts from CLI, Telegram, Discord, Slack via `/vault`
-- **Import/Export** — Share prompt collections as JSON files
-- **Version History** — Auto-saves previous versions when you edit
-- **Themeable** — Adapts to your dashboard theme
+- **/vault save** — Save prompts with title, content, and optional description
+- **/vault search** — Search prompts by title, content, or description
+- **/vault use** — Show a prompt's full content for copying
+- **/vault list** — List recent prompts with optional category filter
+- **/vault favorite** — Toggle favorite status by prompt ID
+- **/vault delete** — Delete a prompt
+- **/vault stats** — Show vault statistics
+- **Dashboard UI** — Full web dashboard for managing prompts
 
-## Install
-
-```bash
-hermes plugins install LeventeNagy/hermes-prompt-vault
-hermes plugins enable prompt-vault
-```
-
-Then restart Hermes (`/reset` or restart the gateway).
-
-## Slash Commands
-
-```
-/vault list [category]       List prompts
-/vault search <query>        Search prompts
-/vault use <id>              Show full prompt content
-/vault save Title | content  Save a new prompt
-/vault delete <id>           Delete a prompt
-/vault stats                 Show vault stats
-```
-
-## Dashboard
-
-Start the dashboard to use the visual interface:
+## Installation
 
 ```bash
-hermes dashboard
+hermes plugins install github:leven/hermes-prompt-vault
 ```
 
-Click the **Prompt Vault** tab in the nav bar.
+## Usage
 
-## Manual Install
-
-```bash
-cd ~/.hermes/plugins
-git clone https://github.com/LeventeNagy/hermes-prompt-vault.git
-hermes plugins enable prompt-vault
+```
+/vault help
+/vault save My Prompt | The prompt content here | Optional description
+/vault search code review
+/vault favorite abc12345
 ```
 
 ## License

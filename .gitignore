@@ -1,4 +1,10 @@
-node_modules/
 __pycache__/
 *.pyc
-prompts.db
+*.db
+*.db-wal
+*.db-shm
+node_modules/
+dashboard/dist/
+*.egg-info/
+dist/
+build/
