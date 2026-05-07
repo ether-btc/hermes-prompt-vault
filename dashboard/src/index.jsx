@@ -440,7 +440,7 @@
   // Detail View
   // -----------------------------------------------------------------------
 
-  function PromptDetail({ prompt, onBack, onEdit }) {
+  function PromptDetail({ prompt, onBack, onEdit, onRestore }) {
     const [showVersions, setShowVersions] = useState(false);
     const [copied, setCopied] = useState(false);
 
@@ -507,7 +507,7 @@
         React.createElement("h3", { className: "pv-section-title" },
           React.createElement(Icons.history, { size: 16 }), " Version History"
         ),
-        React.createElement(VersionHistory, { promptId: prompt.id, onRestore: () => {} })
+        React.createElement(VersionHistory, { promptId: prompt.id, onRestore: onRestore })
       )
     );
   }
@@ -818,6 +818,7 @@
         prompt: activePrompt,
         onBack: () => { setView("list"); loadPrompts(); },
         onEdit: handleEditPrompt,
+        onRestore: handleRestore,
       }),
 
       // Create / Edit form
